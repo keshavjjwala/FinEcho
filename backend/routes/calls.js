@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { supabaseAdmin } from "../supabase.js";
 import { runCallPipeline } from "../services/callPipeline.js";
 import { getAudioDurationSeconds } from "../services/duration.js";
+import { extractNotesMeta } from "../services/notesMeta.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, "../uploads");
@@ -184,6 +185,17 @@ router.get("/:id", async (req, res) => {
     if (error) return res.status(500).json({ error: error.message });
     if (!row) return res.status(404).json({ error: "Call not found" });
 
+    // Some deployments may not have JSONB columns; fall back to notes meta.
+    const notesMeta = extractNotesMeta(row.notes);
+
+    // Only include ingestion_metadata if it exists and has actual data (not empty object)
+    const ingestion = row.ingestion_metadata ?? notesMeta.ingestion_metadata;
+    const hasIngestionData =
+      ingestion &&
+      typeof ingestion === "object" &&
+      !ingestion.error &&
+      Object.keys(ingestion).length > 0;
+
     res.json({
       id: row.id,
       advisor_id: row.advisor_id,
@@ -194,13 +206,25 @@ router.get("/:id", async (req, res) => {
       transcript: row.transcript,
       summary: row.summary,
       goals: row.goals ?? [],
-      language: row.language,
+      // Prefer ingestion language if present, otherwise fall back
+      language: (hasIngestionData && ingestion.language) || row.language || null,
       duration_seconds: row.duration_seconds ?? 0,
       status: row.status,
+      segment_confidence: row.segment_confidence || notesMeta.segment_confidence || null,
       compliance_status: row.compliance_status ?? "clear",
       compliance_flags: row.compliance_flags ?? [],
       notes: row.notes,
       created_at: row.created_at,
+      // Expose ingestion metadata only if it has real data
+      ingestion_metadata: hasIngestionData ? ingestion : null,
+      understanding_metadata:
+        (row.understanding_metadata &&
+          typeof row.understanding_metadata === "object" &&
+          Object.keys(row.understanding_metadata).length > 0
+          ? row.understanding_metadata
+          : null) ??
+        notesMeta.understanding_metadata ??
+        null,
     });
   } catch (err) {
     console.error("Call get error:", err);

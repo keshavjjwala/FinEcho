@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 import path from "path";
+import ffprobeInstaller from "@ffprobe-installer/ffprobe";
 
 /**
  * Get audio duration in seconds using ffprobe.
@@ -11,7 +12,7 @@ import path from "path";
  */
 export function getAudioDurationSeconds(audioPath) {
   return new Promise((resolve, reject) => {
-    const ffprobe = process.env.FFPROBE_PATH || "ffprobe";
+    const ffprobe = process.env.FFPROBE_PATH || ffprobeInstaller.path || "ffprobe";
 
     console.log("────────────────────────────────────");
     console.log("[ffprobe] Probing duration");
@@ -29,12 +30,7 @@ export function getAudioDurationSeconds(audioPath) {
       audioPath,
     ];
 
-    const proc = spawn(ffprobe, args, {
-      env: {
-        ...process.env,
-        PATH: process.env.PATH || "/usr/bin:/bin:/usr/local/bin",
-      },
-    });
+    const proc = spawn(ffprobe, args, { env: { ...process.env } });
 
     let stdout = "";
     let stderr = "";

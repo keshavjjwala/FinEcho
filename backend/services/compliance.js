@@ -11,6 +11,21 @@ const RISKY_PHRASES = [
   { pattern: /can't\s+lose/gi, message: "Suggests no possibility of loss" },
 ];
 
+// Simple PII patterns for Indian context (phone, PAN, Aadhaar).
+const PHONE_PATTERN = /\b(\+?\d{1,3}[-\s]?)?\d{10}\b/g; // 10‑digit mobile with optional country code
+const AADHAAR_PATTERN = /\b\d{4}\s?\d{4}\s?\d{4}\b/g; // 12 digits, often grouped 4-4-4
+const PAN_PATTERN = /\b[A-Z]{5}\d{4}[A-Z]\b/g; // e.g. ABCDE1234F
+
+// Lightweight profanity list (English + a few Hinglish terms).
+const PROFANITY_WORDS = [
+  /fuck/gi,
+  /\bshit\b/gi,
+  /\bdamn\b/gi,
+  /\bbastard\b/gi,
+  /\bchutiya\b/gi,
+  /\bmadarchod\b/gi,
+];
+
 const DISCLAIMER_PHRASES = [
   /past\s+performance/gi,
   /not\s+(a\s+)?guarantee/gi,
@@ -28,6 +43,26 @@ export function analyzeCompliance(transcript) {
 
   for (const { pattern, message } of RISKY_PHRASES) {
     if (pattern.test(text)) compliance_flags.push(message);
+  }
+
+  // PII detection – we only surface that some PII-like pattern exists;
+  // we do not store the actual value.
+  if (PHONE_PATTERN.test(text)) {
+    compliance_flags.push("Possible phone number (PII) mentioned");
+  }
+  if (AADHAAR_PATTERN.test(text)) {
+    compliance_flags.push("Possible Aadhaar number (PII) mentioned");
+  }
+  if (PAN_PATTERN.test(text)) {
+    compliance_flags.push("Possible PAN number (PII) mentioned");
+  }
+
+  // Profanity detection – flag that the call contained abusive language.
+  for (const wordPattern of PROFANITY_WORDS) {
+    if (wordPattern.test(text)) {
+      compliance_flags.push("Profanity detected in conversation");
+      break;
+    }
   }
 
   const hasDisclaimer = DISCLAIMER_PHRASES.some((p) => p.test(text));

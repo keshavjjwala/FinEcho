@@ -3,6 +3,9 @@ import { transcribeWithWhisper } from "./transcribe.js";
 import { extractSummaryAndGoals } from "./summary.js";
 import { analyzeCompliance } from "./compliance.js";
 import { analyseTranscriptWithBackboard } from "./backboard.js";
+import { analyseFinancialUnderstanding } from "./understanding.js";
+import { runAudioIngestion } from "./audioIngestion.js";
+import { mergeCallNotesMeta } from "./notesMeta.js";
 import { unlink } from "fs/promises";
 
 /**
@@ -13,6 +16,74 @@ import { unlink } from "fs/promises";
  */
 export async function runCallPipeline(callId, audioPath) {
   try {
+    // 0) Audio ingestion phase (lightweight, pre-transcription analysis)
+    try {
+      const ingestion = await runAudioIngestion(audioPath);
+      console.log("[Ingestion] JSON for call", callId, ingestion);
+
+      // Heuristic transcription confidence from ingestion metrics.
+      let segment_confidence = null;
+      try {
+        const noise = ingestion?.noise_level;
+        const tampering = !!ingestion?.possible_tampering;
+        const silenceRatio = typeof ingestion?.silence_ratio === "number" ? ingestion.silence_ratio : null;
+
+        if (tampering || (silenceRatio !== null && silenceRatio > 0.6)) {
+          segment_confidence = "Low";
+        } else if (noise === "high") {
+          segment_confidence = "Medium";
+        } else if (noise === "low") {
+          segment_confidence = "High";
+        } else {
+          segment_confidence = "Medium";
+        }
+      } catch {
+        segment_confidence = null;
+      }
+
+      const { error: ingestionUpdateError } = await supabaseAdmin
+        .from("calls")
+        .update({
+          ingestion_metadata: ingestion,
+          // Mirror detected language for list views / fallbacks
+          language: ingestion.language || null,
+          segment_confidence,
+        })
+        .eq("id", callId);
+
+      if (ingestionUpdateError) {
+        console.error(
+          "[Ingestion] Failed to persist ingestion_metadata for call",
+          callId,
+          ingestionUpdateError.message || ingestionUpdateError
+        );
+
+        // If migrations haven't been applied, store metadata inside notes so UI still works.
+        if (String(ingestionUpdateError.message || "").includes("schema cache")) {
+          await mergeCallNotesMeta(callId, {
+            ingestion_metadata: ingestion,
+            segment_confidence,
+          }).catch(() => {});
+        }
+      } else {
+        console.log("[Ingestion] Stored ingestion_metadata for call", callId, "segment_confidence:", segment_confidence);
+      }
+    } catch (ingErr) {
+      console.error("Audio ingestion failed for", callId, ingErr);
+      // Store empty object so frontend knows ingestion was attempted but failed
+      await supabaseAdmin
+        .from("calls")
+        .update({
+          ingestion_metadata: { error: "Ingestion failed: " + (ingErr.message || "Unknown error") },
+        })
+        .eq("id", callId)
+        .catch(() => {}); // Ignore update errors
+
+      await mergeCallNotesMeta(callId, {
+        ingestion_metadata: { error: "Ingestion failed: " + (ingErr.message || "Unknown error") },
+      }).catch(() => {});
+    }
+
     // 1) Transcription phase
     await supabaseAdmin.from("calls").update({ status: "transcribing" }).eq("id", callId);
 
@@ -47,6 +118,7 @@ export async function runCallPipeline(callId, audioPath) {
       let language;
       let compliance_flags;
       let compliance_status;
+      let understanding_metadata;
 
       try {
         const backboard = await analyseTranscriptWithBackboard(transcript);
@@ -66,17 +138,43 @@ export async function runCallPipeline(callId, audioPath) {
         compliance_status = compliance.compliance_status;
       }
 
-      await supabaseAdmin
+      // 3) Lightweight financial understanding (intents, entities, emotion etc.)
+      try {
+        understanding_metadata = analyseFinancialUnderstanding(transcript);
+      } catch (uErr) {
+        console.error("Understanding analysis failed for", callId, uErr);
+        understanding_metadata = null;
+      }
+
+      // First update core fields that exist in the original schema.
+      const { error: coreUpdateError } = await supabaseAdmin
         .from("calls")
         .update({
           summary,
           goals,
-          language,
+          // Don't overwrite detected language from ingestion; keep the call.language as-is.
           compliance_flags,
           compliance_status,
           status: "completed",
         })
         .eq("id", callId);
+
+      if (coreUpdateError) {
+        console.error("Core update failed for", callId, coreUpdateError);
+      }
+
+      // Then try to persist understanding_metadata if the column exists.
+      const { error: understandingErr } = await supabaseAdmin
+        .from("calls")
+        .update({ understanding_metadata })
+        .eq("id", callId);
+
+      if (understandingErr) {
+        console.error("Understanding metadata persist failed for", callId, understandingErr.message || understandingErr);
+        if (String(understandingErr.message || "").includes("schema cache")) {
+          await mergeCallNotesMeta(callId, { understanding_metadata }).catch(() => {});
+        }
+      }
     } catch (err) {
       console.error("Summary/compliance step failed for", callId, err);
       await supabaseAdmin

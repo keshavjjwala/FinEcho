@@ -13,6 +13,9 @@ import {
   CheckCircle,
   AlertTriangle,
   Loader2,
+  Waves,
+  Users,
+  AlertOctagon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +78,19 @@ const formatDuration = (seconds: number): string => {
 function CallDetailsView({ call, onDelete }: { call: CallDetailFromApi; onDelete: () => void }) {
   const flags = call.compliance_flags ?? [];
   const isFailed = call.status?.startsWith('failed');
+
+  const ingestion = call.ingestion_metadata;
+  const quality = ingestion?.call_quality;
+  const noise = ingestion?.noise_level;
+  const speakers = ingestion?.speakers_detected;
+  const tampering = ingestion?.possible_tampering;
+  const ingestionLanguage = ingestion?.language;
+
+  const understanding = call.understanding_metadata || undefined;
+  const intents = understanding?.intents ?? [];
+  const entities = understanding?.entities ?? {};
+  const emotion = understanding?.emotion ?? 'Neutral';
+  const regulatory = understanding?.regulatory_phrases ?? { present: [], missing: [] };
 
   return (
     <div className="p-8 max-w-5xl">
@@ -163,8 +179,160 @@ function CallDetailsView({ call, onDelete }: { call: CallDetailFromApi; onDelete
             </div>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2">Status: {call.status}</p>
+        <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+          <span>Status: {call.status}</span>
+          {call.segment_confidence && (
+            <span>
+              Transcript confidence:{' '}
+              <span
+                className={cn(
+                  'font-medium',
+                  call.segment_confidence === 'High' && 'text-success',
+                  call.segment_confidence === 'Medium' && 'text-warning',
+                  call.segment_confidence === 'Low' && 'text-destructive'
+                )}
+              >
+                {call.segment_confidence}
+              </span>
+            </span>
+          )}
+        </div>
       </section>
+
+      {ingestion && (
+        <section className="card-elevated p-6 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Waves className="h-5 w-5 text-primary" />
+            Audio ingestion
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Audio format</p>
+              <p className="text-sm font-medium text-foreground">
+                {ingestion.audio_format ? ingestion.audio_format.toUpperCase() : '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Detected language</p>
+              <p className="text-sm font-medium text-foreground uppercase">
+                {ingestionLanguage ?? '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Noise level</p>
+              <p className="text-sm font-medium text-foreground capitalize">
+                {noise ?? '—'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Call quality</p>
+              <Badge
+                className={cn(
+                  'font-normal',
+                  quality === 'Good' && 'bg-success/10 text-success border-success/20',
+                  quality === 'Fair' && 'bg-warning/10 text-warning border-warning/20',
+                  quality === 'Poor' && 'bg-destructive/10 text-destructive border-destructive/20'
+                )}
+              >
+                {quality ?? '—'}
+              </Badge>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Speakers detected</p>
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-medium text-foreground">
+                  {typeof speakers === 'number' ? speakers : '—'}
+                </p>
+              </div>
+            </div>
+          </div>
+          {tampering && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-destructive">
+              <AlertOctagon className="h-4 w-4" />
+              <span>Heuristic check suggests this call may be clipped or unusually silent. Review with care.</span>
+            </div>
+          )}
+        </section>
+      )}
+
+      {understanding && (
+        <section className="card-elevated p-6 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            AI insights
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Intents detected</p>
+              <div className="flex flex-wrap gap-1.5">
+                {(intents.length ? intents : ['advisory_discussion']).map((intent, idx) => (
+                  <Badge key={idx} variant="secondary" className="font-normal">
+                    {intent.replace(/_/g, ' ')}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Entities</p>
+              <div className="space-y-1">
+                {entities.amounts && entities.amounts.length > 0 && (
+                  <p>
+                    <span className="text-xs text-muted-foreground">Amounts: </span>
+                    <span className="text-foreground">{entities.amounts.join(', ')}</span>
+                  </p>
+                )}
+                {entities.rates && entities.rates.length > 0 && (
+                  <p>
+                    <span className="text-xs text-muted-foreground">Rates: </span>
+                    <span className="text-foreground">{entities.rates.join(', ')}</span>
+                  </p>
+                )}
+                {entities.tenures && entities.tenures.length > 0 && (
+                  <p>
+                    <span className="text-xs text-muted-foreground">Tenure: </span>
+                    <span className="text-foreground">{entities.tenures.join(', ')}</span>
+                  </p>
+                )}
+                {entities.products && entities.products.length > 0 && (
+                  <p>
+                    <span className="text-xs text-muted-foreground">Products: </span>
+                    <span className="text-foreground">{entities.products.join(', ')}</span>
+                  </p>
+                )}
+                {(!entities.amounts || entities.amounts.length === 0) &&
+                  (!entities.rates || entities.rates.length === 0) &&
+                  (!entities.tenures || entities.tenures.length === 0) &&
+                  (!entities.products || entities.products.length === 0) && (
+                    <p className="text-muted-foreground">No clear financial entities detected.</p>
+                  )}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Emotion & compliance tone</p>
+              <p className="mb-1">
+                <span className="text-xs text-muted-foreground">Emotion: </span>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'font-normal',
+                    emotion === 'Calm' && 'border-success text-success',
+                    emotion === 'Stressed' && 'border-destructive text-destructive'
+                  )}
+                >
+                  {emotion}
+                </Badge>
+              </p>
+              {regulatory?.missing && regulatory.missing.length > 0 && (
+                <p className="text-xs text-warning mt-1">
+                  Missing disclaimers:{' '}
+                  <span className="text-foreground">{regulatory.missing.join(', ')}</span>
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {isFailed && (
         <section className="card-elevated p-6 mb-6">

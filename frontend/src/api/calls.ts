@@ -32,6 +32,33 @@ export interface CallDetailFromApi {
   compliance_flags: string[];
   notes: string | null;
   created_at: string;
+  segment_confidence?: "High" | "Medium" | "Low" | null;
+  ingestion_metadata?: {
+    audio_format?: string;
+    duration_sec?: number | null;
+    language?: string | null;
+    noise_level?: "low" | "medium" | "high" | null;
+    call_quality?: "Good" | "Fair" | "Poor" | null;
+    speakers_detected?: number | null;
+    possible_tampering?: boolean;
+  };
+  understanding_metadata?: {
+    intents?: string[];
+    entities?: {
+      amounts?: string[];
+      dates?: string[];
+      rates?: string[];
+      tenures?: string[];
+      products?: string[];
+    };
+    obligation_detected?: boolean;
+    follow_up_date?: string | null;
+    emotion?: "Calm" | "Neutral" | "Stressed" | string;
+    regulatory_phrases?: {
+      present?: string[];
+      missing?: string[];
+    };
+  } | null;
 }
 
 export async function getCallsList(

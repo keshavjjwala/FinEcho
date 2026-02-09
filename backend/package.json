@@ -5,6 +5,8 @@
     "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2",
     "@supabase/supabase-js": "^2.95.3",
     "axios": "^1.13.5",
     "cors": "^2.8.6",
