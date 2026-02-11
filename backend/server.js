@@ -10,6 +10,7 @@ import "dotenv/config";
 import supabase, { supabaseAdmin } from "./supabase.js";
 import callsRouter from "./routes/calls.js";
 import clientsRouter from "./routes/clients.js";
+import transcriptRoute from "./routes/transcript.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, "uploads");
@@ -129,6 +130,8 @@ app.get("/api/advisor/dashboard", async (req, res) => {
     res.status(500).json({ error: "Dashboard data failed" });
   }
 });
+
+app.use("/api", transcriptRoute);
 
 /** Legacy dashboard summary (same shape as before for any existing callers). */
 app.get("/api/dashboard/summary", async (req, res) => {
