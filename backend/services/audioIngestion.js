@@ -4,12 +4,12 @@ import { fileURLToPath } from "url";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const AI_DIR = path.resolve(__dirname, "../../ai");
+const AI_DIR = path.resolve(__dirname, "../ai");
 
 /**
  * Run lightweight audio ingestion in Python.
  *
- * Uses ai/audio_ingestion.py
+ * Uses backend/ai/audio_ingestion.py
  * Command:
  *   <PYTHON_PATH> audio_ingestion.py <audio_path>
  *

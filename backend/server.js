@@ -19,7 +19,7 @@ mkdir(UPLOAD_DIR, { recursive: true }).catch(() => { });
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083', 'http://localhost:8084', 'http://localhost:8085', 'http://localhost:8086', 'http://172.18.232.191:8080', 'http://172.18.232.191:8081', 'http://172.18.232.191:8082', 'http://172.18.232.191:8083', 'http://172.18.232.191:8084', 'http://172.18.232.191:8085', 'http://172.18.232.191:8086'],
+  origin: ['http://localhost:8080', 'https://finecho1.vercel.app','http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083', 'http://localhost:8084', 'http://localhost:8085', 'http://localhost:8086', 'http://172.18.232.191:8080', 'http://172.18.232.191:8081', 'http://172.18.232.191:8082', 'http://172.18.232.191:8083', 'http://172.18.232.191:8084', 'http://172.18.232.191:8085', 'http://172.18.232.191:8086'],
   credentials: true
 }));
 app.use(express.json());

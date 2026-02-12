@@ -4,12 +4,12 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const AI_DIR = path.resolve(__dirname, "../../ai");
+const AI_DIR = path.resolve(__dirname, "../ai");
 
 /**
  * Run Whisper transcription via Python script.
  *
- * Uses ai/transcribe.py
+ * Uses backend/ai/transcribe.py
  * Command:
  *   <PYTHON_PATH> transcribe.py <audio_path>
  *

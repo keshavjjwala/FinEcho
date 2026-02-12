@@ -1,6 +1,8 @@
+from pathlib import Path
+
 from faster_whisper import WhisperModel
 
-AUDIO_PATH = "ai/call1.mp4"
+AUDIO_PATH = str(Path(__file__).resolve().parent / "call1.mp4")
 
 model = WhisperModel(
     "base",
