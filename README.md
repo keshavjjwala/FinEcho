@@ -1,22 +1,23 @@
-# 🎙️ Finecho — AI Audio to Text Converter
+# 🎙️ Finecho — AI Financial Audio Intelligence System
 
 ## 📌 Overview
 
-**Finecho** is a full-stack web application that converts spoken audio into accurate text using AI-based speech recognition.
+**Finecho** is an AI-powered web application that converts audio recordings into text and intelligently extracts **financial conversations** from them.
 
-It provides a simple and user-friendly interface where users can upload audio files and instantly receive transcribed text.
+It uses the **Whisper AI speech recognition model** to transcribe audio and focuses on identifying financial discussions such as investments, transactions, market talk, and monetary references.
 
-This project demonstrates integration of **Frontend UI, Backend APIs, and AI Speech Processing**.
+This project demonstrates full-stack integration of **Frontend UI, Backend APIs, and AI-powered audio intelligence**.
 
 ---
 
-## 🚀 Features
+## 🚀 Key Features
 
-✨ Upload audio files easily  
-⚡ Fast speech-to-text conversion  
-🧠 AI-powered transcription  
-🎨 Clean & responsive UI  
-🌐 Full-stack deployment  
+🎤 Upload audio recordings easily  
+🧠 AI-powered speech-to-text using Whisper  
+💰 Detects & extracts financial conversations  
+⚡ Fast and accurate transcription  
+🎨 Clean and responsive UI  
+🌐 Full-stack deployed application  
 
 ---
 
@@ -38,8 +39,8 @@ This project demonstrates integration of **Frontend UI, Backend APIs, and AI Spe
 
 ### 🤖 AI / Processing
 - 🐍 Python  
-- 🎤 Whisper  
-- 🔊 Audio Processing Tools  
+- 🎤 OpenAI Whisper Model  
+- 🔊 Audio Processing Libraries  
 
 ---
 
@@ -63,7 +64,7 @@ finecho/
 │
 ├── frontend/          # React UI
 ├── backend/           # Node + Express API
-├── python-script/     # Speech Recognition Logic
+├── ai-module/         # Whisper transcription + financial extraction
 └── README.md
 ```
 
@@ -71,17 +72,27 @@ finecho/
 
 ## ⚡ How It Works
 
-1️⃣ User uploads an audio file from the frontend  
-2️⃣ File is sent to backend server via API  
-3️⃣ Backend processes audio using Python script  
-4️⃣ Speech recognition converts audio → text  
-5️⃣ Transcribed text is returned & displayed  
+1️⃣ User uploads an audio recording  
+2️⃣ Backend sends audio to Whisper AI model  
+3️⃣ Whisper converts speech → text  
+4️⃣ AI processes text to identify financial discussions  
+5️⃣ Extracted financial insights are displayed to the user  
+
+---
+
+## 🌟 Unique Innovation
+
+Unlike normal speech-to-text apps, **Finecho acts as an AI financial intelligence tool** by:
+
+✅ Understanding context of conversations  
+✅ Detecting financial topics automatically  
+✅ Extracting only relevant monetary information  
 
 ---
 
 ## 🖥️ Installation & Setup
 
-### 1️⃣ Clone Repository
+### Clone Repository
 
 ```bash
 git clone https://github.com/your-username/finecho.git
@@ -90,7 +101,7 @@ cd finecho
 
 ---
 
-### 2️⃣ Setup Frontend
+### Setup Frontend
 
 ```bash
 cd frontend
@@ -100,7 +111,7 @@ npm start
 
 ---
 
-### 3️⃣ Setup Backend
+### Setup Backend
 
 ```bash
 cd backend
@@ -110,7 +121,7 @@ node server.js
 
 ---
 
-### 4️⃣ Run Python Script
+### Run AI Module
 
 ```bash
 pip install -r requirements.txt
@@ -128,10 +139,10 @@ python app.py
 
 ## 🔮 Future Improvements
 
-🎙️ Live voice recording support  
-🌍 Multi-language transcription  
-⚡ Real-time streaming transcription  
-🔐 User authentication system  
+🎙️ Real-time call monitoring  
+📊 Financial sentiment analysis  
+🌍 Multi-language support  
+🤖 AI financial risk detection  
 
 ---
 
