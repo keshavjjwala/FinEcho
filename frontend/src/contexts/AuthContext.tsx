@@ -9,6 +9,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signup: (email: string, password: string, name: string) => Promise<{ error: AuthError | null }>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -20,7 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user profile from profiles table
+  /** Fetch Profile */
   const fetchProfile = useCallback(async (userId: string): Promise<User | null> => {
     try {
       const { data, error } = await supabase
@@ -30,12 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        console.error('Error fetching profile:', error);
-        // If profile doesn't exist, return null instead of throwing error
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found, will be created by backend');
-          return null;
-        }
+        if (error.code === 'PGRST116') return null;
+        console.error('Profile error:', error);
         return null;
       }
 
@@ -46,44 +43,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Initialize auth state - DISABLED since auth is removed
+  /** Init Auth */
   useEffect(() => {
-    // Authentication completely removed - set loading to false immediately
-    setIsLoading(false);
-    return;
-  }, []);
+    let mounted = true;
 
-  const login = useCallback(async (email: string, password: string) => {
-    if (!supabase) {
-      return { error: new Error('Supabase not configured') as any };
-    }
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const applySession = async (nextSession: Session | null) => {
+      if (!mounted) return;
+
+      setSession(nextSession);
+
+      if (nextSession?.user) {
+        const profile = await fetchProfile(nextSession.user.id);
+        if (mounted) setUser(profile);
+      } else {
+        setUser(null);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data }) => {
+      applySession(data.session ?? null);
+      if (mounted) setIsLoading(false);
     });
 
-    if (error) {
-      return { error };
-    }
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      applySession(session);
+    });
 
-    if (data.user) {
-      const profile = await fetchProfile(data.user.id);
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [fetchProfile]);
+
+  /** LOGIN */
+  const login = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) return { error };
+
+    setSession(data.session ?? null);
+
+    if (data.session?.user) {
+      const profile = await fetchProfile(data.session.user.id);
       setUser(profile);
-      setSession(data.session);
     }
 
     return { error: null };
   }, [fetchProfile]);
 
+  /** SIGNUP */
+  const signup = useCallback(async (email: string, password: string, name: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name }
+      }
+    });
+
+    return { error };
+  }, []);
+
+  /** LOGOUT */
   const logout = useCallback(async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
+    await supabase.auth.signOut();
     setUser(null);
     setSession(null);
   }, []);
 
+  /** Refresh profile */
   const refreshProfile = useCallback(async () => {
     if (session?.user) {
       const profile = await fetchProfile(session.user.id);
@@ -94,13 +122,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider
       value={{
-        user: { id: 'demo', email: 'demo@example.com', name: 'Demo User', role: 'advisor' },
-        session: null,
-        isAuthenticated: true, // Always authenticated since auth is removed
-        isLoading: false,
-        login: async () => ({ error: null }),
-        logout: async () => {},
-        refreshProfile: async () => {},
+        user,
+        session,
+        isAuthenticated: !!session,
+        isLoading,
+        login,
+        signup,
+        logout,
+        refreshProfile,
       }}
     >
       {children}
@@ -108,10 +137,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+/** Hook */
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 };

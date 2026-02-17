@@ -7,6 +7,9 @@ import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppLayout from "@/components/layout/AppLayout";
 import ProtectedRoute from "@/routes/ProtectedRoute";
+import Signup from "./pages/Signup";
+
+
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -25,19 +28,28 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
+              {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+
+
+              {/* Protected Routes Wrapper */}
               <Route
+                path="/"
                 element={
                   <ProtectedRoute>
                     <AppLayout />
                   </ProtectedRoute>
                 }
               >
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/calls" element={<CallsList />} />
-                <Route path="/calls/:callId" element={<CallSummary />} />
+                {/* IMPORTANT: Use RELATIVE paths here */}
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="calls" element={<CallsList />} />
+                <Route path="calls/:callId" element={<CallSummary />} />
               </Route>
+
+              {/* Fallback */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
